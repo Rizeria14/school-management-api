@@ -450,7 +450,7 @@
 <div style="padding: 0 3rem; border-top: 1.5px solid var(--border);">
   <div class="api-bar" style="margin-top: 1.5rem;">
     <label>API BASE URL</label>
-    <input type="text" id="api-base" value="http://localhost:3000" placeholder="http://localhost:3000" />
+    <input type="text" id="api-base" value="" placeholder="Same origin API" />
     <button class="btn btn-outline btn-sm" onclick="checkHealth()">Connect</button>
   </div>
 </div>
@@ -547,7 +547,10 @@
 
 <script>
 
-  let apiBase = () => document.getElementById('api-base').value.replace(/\/$/, '');
+  let apiBase = () => {
+  const value = document.getElementById('api-base').value.trim();
+  return value ? value.replace(/\/$/, '') : '';
+};
 
 
   async function checkHealth() {
