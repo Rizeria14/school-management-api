@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SchoolMap — School Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #0d0d0d;
+      --paper:     #f5f0e8;
+      --cream:     #ede8dc;
+      --accent:    #c8421a;
+      --accent2:   #1a5fc8;
+      --muted:     #8a8070;
+      --border:    #c8bfaf;
+      --card:      #faf8f4;
+      --success:   #1a7a4a;
+      --error:     #c8421a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRAIN OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 3rem;
+      border-bottom: 1.5px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(245,240,232,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex; align-items: baseline; gap: 0.5rem;
+    }
+    .logo-word {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .logo-dot { color: var(--accent); font-size: 1.8rem; line-height: 1; }
+
+    .header-status {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #aaa;
+      transition: background 0.4s;
+    }
+    .status-dot.live { background: var(--success); box-shadow: 0 0 6px var(--success); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 5rem 3rem 3rem;
+      max-width: 900px;
+    }
+    .hero-eyebrow {
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin-bottom: 1.2rem;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 460px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      border-top: 1.5px solid var(--border);
+      margin-top: 3rem;
+    }
+
+    /* ── PANELS ── */
+    .panel {
+      padding: 2.5rem 3rem;
+      border-right: 1.5px solid var(--border);
+      animation: fadeUp 0.6s ease both;
+    }
+    .panel:last-child { border-right: none; }
+    .panel:nth-child(2) { animation-delay: 0.1s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .panel-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .panel h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .panel-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 1.4rem; }
+
+    label {
+      display: block;
+      font-size: 0.62rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      border-radius: 0;
+      -webkit-appearance: none;
+    }
+    input:focus {
+      border-color: var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    input.error { border-color: var(--error); }
+    input::placeholder { color: var(--border); }
+
+    .coord-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .field-error {
+      font-size: 0.62rem;
+      color: var(--error);
+      margin-top: 0.35rem;
+      display: none;
+    }
+    .field-error.visible { display: block; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.8rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 2px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      transition: transform 0.15s, box-shadow 0.15s;
+      width: 100%;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+    .btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 4px 0 var(--accent);
+    }
+    .btn:active { transform: translate(0,0); box-shadow: none; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn-outline:hover { box-shadow: 4px 4px 0 var(--accent2); }
+
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.68rem;
+      width: auto;
+    }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+      z-index: 500;
+    }
+
+    .toast {
+      padding: 1rem 1.4rem;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      font-size: 0.75rem;
+      max-width: 320px;
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      animation: toastIn 0.3s ease;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .toast.success .toast-icon { color: var(--success); }
+    .toast.error   .toast-icon { color: var(--error); }
+    .toast-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .toast-msg { line-height: 1.5; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── LIST PANEL ── */
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .locate-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+    .locate-btn:hover { text-decoration: underline; }
+
+    /* ── SCHOOL CARDS ── */
+    #schools-list { margin-top: 1.5rem; }
+
+    .schools-count {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .school-card {
+      border: 1.5px solid var(--border);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 0.75rem;
+      background: var(--card);
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: default;
+      animation: fadeUp 0.4s ease both;
+      position: relative;
+    }
+    .school-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+
+    .card-rank {
+      position: absolute;
+      top: -1px; left: -1px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      padding: 0.2rem 0.5rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+    }
+    .card-rank.near { background: var(--accent); }
+
+    .card-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      margin-top: 0.6rem;
+    }
+    .card-address {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+    .card-meta {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+    .card-meta span { display: flex; align-items: center; gap: 0.3rem; }
+    .card-dist {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.8rem;
+    }
+
+    /* ── EMPTY / LOADING ── */
+    .state-msg {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 2;
+    }
+    .state-icon { font-size: 2.5rem; display: block; margin-bottom: 1rem; opacity: 0.4; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── API CONFIG ── */
+    .api-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 1rem;
+      background: var(--cream);
+      border: 1.5px solid var(--border);
+      margin-bottom: 2rem;
+      font-size: 0.68rem;
+    }
+    .api-bar label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+    .api-bar input { border: none; background: transparent; padding: 0; font-size: 0.72rem; box-shadow: none; }
+    .api-bar input:focus { border: none; box-shadow: none; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1.5px solid var(--border);
+      padding: 1.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      header { padding: 1rem 1.5rem; }
+      .hero  { padding: 3rem 1.5rem 2rem; }
+      .main-layout { grid-template-columns: 1fr; }
+      .panel { border-right: none; border-bottom: 1.5px solid var(--border); padding: 2rem 1.5rem; }
+      footer { padding: 1rem 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <span class="logo-word">School</span>
+    <span class="logo-dot">●</span>
+    <span class="logo-word">Map</span>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Connecting…</span>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <p class="hero-eyebrow">School Management System</p>
+  <h1>Find every school,<br /><em>near and far.</em></h1>
+  <p class="hero-sub">Add schools to the directory and instantly discover which ones are closest to any location on Earth.</p>
+</div>
+
+<!-- API CONFIG BAR (spans both panels) -->
+<div style="padding: 0 3rem; border-top: 1.5px solid var(--border);">
+  <div class="api-bar" style="margin-top: 1.5rem;">
+    <label>API BASE URL</label>
+    <input type="text" id="api-base" value="http://localhost:3000" placeholder="http://localhost:3000" />
+    <button class="btn btn-outline btn-sm" onclick="checkHealth()">Connect</button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT: ADD SCHOOL -->
+  <div class="panel">
+    <div class="panel-label">01 — Add</div>
+    <h2>Register a School</h2>
+    <p class="panel-desc">Fill in the details below to add a new school to the directory.</p>
+
+    <form id="add-form" novalidate>
+      <div class="form-group">
+        <label for="name">School Name</label>
+        <input type="text" id="name" placeholder="e.g. Delhi Public School" autocomplete="off" />
+        <div class="field-error" id="err-name"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="address">Full Address</label>
+        <input type="text" id="address" placeholder="e.g. Sector 21, Dwarka, New Delhi" autocomplete="off" />
+        <div class="field-error" id="err-address"></div>
+      </div>
+
+      <div class="form-group">
+        <div class="coord-row">
+          <div>
+            <label for="add-lat">Latitude</label>
+            <input type="number" id="add-lat" placeholder="e.g. 28.6139" step="any" />
+            <div class="field-error" id="err-lat"></div>
+          </div>
+          <div>
+            <label for="add-lng">Longitude</label>
+            <input type="number" id="add-lng" placeholder="e.g. 77.2090" step="any" />
+            <div class="field-error" id="err-lng"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" type="button" id="pick-location-btn" onclick="pickMyLocation('add')">
+        ◎ Use My Location
+      </button>
+
+      <button class="btn" type="submit" id="add-btn">
+        + Add School
+      </button>
+    </form>
+  </div>
+
+  <!-- RIGHT: LIST SCHOOLS -->
+  <div class="panel">
+    <div class="panel-label">02 — Explore</div>
+    <h2>Nearby Schools</h2>
+    <p class="panel-desc">Enter your coordinates to discover schools sorted by proximity.</p>
+
+    <div class="search-row">
+      <div>
+        <label for="user-lat">Your Latitude</label>
+        <input type="number" id="user-lat" placeholder="e.g. 28.6139" step="any" />
+      </div>
+      <div>
+        <label for="user-lng">Your Longitude</label>
+        <input type="number" id="user-lng" placeholder="e.g. 77.2090" step="any" />
+      </div>
+    </div>
+
+    <button class="locate-btn" onclick="pickMyLocation('list')">
+      ◉ Detect my location automatically
+    </button>
+
+    <button class="btn" id="list-btn" onclick="listSchools()">
+      ◈ Search Nearby Schools
+    </button>
+
+    <div id="schools-list">
+      <div class="state-msg">
+        <span class="state-icon">🏫</span>
+        Enter your location and search to see schools sorted by distance.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>SchoolMap API — Node.js + Express + MySQL</span>
+  <span>Distances calculated via Haversine formula</span>
+</footer>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+
+  let apiBase = () => document.getElementById('api-base').value.replace(/\/$/, '');
+
+
+  async function checkHealth() {
+    const dot  = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    dot.className = 'status-dot';
+    text.textContent = 'Connecting…';
+    try {
+      const res = await fetch(apiBase() + '/health');
+      if (res.ok) {
+        dot.className  = 'status-dot live';
+        text.textContent = 'API Connected';
+      } else { throw new Error(); }
+    } catch {
+      dot.className  = 'status-dot';
+      text.textContent = 'Unreachable';
+    }
+  }
+
+
+  function toast(msg, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<span class="toast-icon">${type === 'success' ? '✓' : '✕'}</span><span class="toast-msg">${msg}</span>`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+
+
+  function pickMyLocation(target) {
+    if (!navigator.geolocation) { toast('Geolocation not supported by your browser.', 'error'); return; }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (target === 'add') {
+          document.getElementById('add-lat').value = coords.latitude.toFixed(6);
+          document.getElementById('add-lng').value = coords.longitude.toFixed(6);
+        } else {
+          document.getElementById('user-lat').value = coords.latitude.toFixed(6);
+          document.getElementById('user-lng').value = coords.longitude.toFixed(6);
+        }
+        toast('Location detected successfully.', 'success');
+      },
+      () => toast('Could not get your location. Please enter manually.', 'error')
+    );
+  }
+
+
+  function clearErrors() {
+    document.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = ''; el.classList.remove('visible');
+    });
+    document.querySelectorAll('input.error').forEach(el => el.classList.remove('error'));
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+    const input = el.previousElementSibling;
+    if (input && input.tagName === 'INPUT') input.classList.add('error');
+  }
+
+
+  document.getElementById('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const name    = document.getElementById('name').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const lat     = document.getElementById('add-lat').value;
+    const lng     = document.getElementById('add-lng').value;
+
+    let valid = true;
+    if (!name)    { showError('err-name', 'School name is required.'); valid = false; }
+    if (!address) { showError('err-address', 'Address is required.'); valid = false; }
+    if (!lat || isNaN(lat) || lat < -90 || lat > 90)   { showError('err-lat', 'Latitude must be -90 to 90.'); valid = false; }
+    if (!lng || isNaN(lng) || lng < -180 || lng > 180) { showError('err-lng', 'Longitude must be -180 to 180.'); valid = false; }
+    if (!valid) return;
+
+    const btn = document.getElementById('add-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Adding…';
+
+    try {
+      const res  = await fetch(apiBase() + '/addSchool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, address, latitude: parseFloat(lat), longitude: parseFloat(lng) }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast(`"${data.data.name}" added successfully!`, 'success');
+        document.getElementById('add-form').reset();
+      } else if (res.status === 409) {
+        toast('This school already exists in the directory.', 'error');
+      } else if (res.status === 422 && data.errors) {
+        data.errors.forEach(err => {
+          const map = { name: 'err-name', address: 'err-address', latitude: 'err-lat', longitude: 'err-lng' };
+          if (map[err.field]) showError(map[err.field], err.message);
+        });
+      } else {
+        toast(data.message || 'Something went wrong.', 'error');
+      }
+    } catch {
+      toast('Cannot reach the API. Check the base URL and ensure the server is running.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '+ Add School';
+    }
+  });
+
+
+  async function listSchools() {
+    const lat = document.getElementById('user-lat').value;
+    const lng = document.getElementById('user-lng').value;
+
+    if (!lat || isNaN(lat) || lat < -90 || lat > 90) {
+      toast('Please enter a valid latitude (-90 to 90).', 'error'); return;
+    }
+    if (!lng || isNaN(lng) || lng < -180 || lng > 180) {
+      toast('Please enter a valid longitude (-180 to 180).', 'error'); return;
+    }
+
+    const btn  = document.getElementById('list-btn');
+    const list = document.getElementById('schools-list');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Searching…';
+    list.innerHTML = '<div class="state-msg"><span class="state-icon">⏳</span>Fetching schools…</div>';
+
+    try {
+      const res  = await fetch(`${apiBase()}/listSchools?latitude=${lat}&longitude=${lng}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        list.innerHTML = `<div class="state-msg"><span class="state-icon">⚠️</span>${data.message || 'Error fetching schools.'}</div>`;
+        return;
+      }
+
+      if (!data.data || data.data.length === 0) {
+        list.innerHTML = `<div class="state-msg"><span class="state-icon">📭</span>No schools found in the directory yet.<br/>Add one using the form on the left!</div>`;
+        return;
+      }
+
+      const schools = data.data;
+      list.innerHTML = `<div class="schools-count">${schools.length} school${schools.length !== 1 ? 's' : ''} found — sorted by distance</div>`;
+
+      schools.forEach((school, i) => {
+        const card = document.createElement('div');
+        card.className = 'school-card';
+        card.style.animationDelay = `${i * 0.06}s`;
+
+        const isNearest = i === 0;
+        const rank = isNearest ? 'NEAREST' : `#${i + 1}`;
+        const rankClass = isNearest ? 'card-rank near' : 'card-rank';
+
+        card.innerHTML = `
+          <div class="${rankClass}">${rank}</div>
+          <div class="card-name">${escHtml(school.name)}</div>
+          <div class="card-address">📍 ${escHtml(school.address)}</div>
+          <div class="card-meta">
+            <span><span class="card-dist">${school.distance_km} km</span> away</span>
+            <span>Lat ${school.latitude.toFixed(4)}</span>
+            <span>Lng ${school.longitude.toFixed(4)}</span>
+          </div>`;
+        list.appendChild(card);
+      });
+    } catch {
+      list.innerHTML = `<div class="state-msg"><span class="state-icon">🔌</span>Cannot reach the API. Check the base URL and ensure the server is running.</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '◈ Search Nearby Schools';
+    }
+  }
+
+  function escHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+
+  window.addEventListener('load', checkHealth);
+</script>
+</body>
+</html>

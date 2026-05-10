@@ -1,0 +1,221 @@
+{
+  "info": {
+    "name": "School Management API",
+    "_postman_id": "school-mgmt-api-v1",
+    "description": "Postman collection for the School Management API.\n\nEndpoints:\n- POST /addSchool  — Add a new school\n- GET  /listSchools — List schools sorted by proximity\n\nSet the `baseUrl` variable to your deployed host (default: http://localhost:3000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        },
+        "description": "Verify the API server is running."
+      },
+      "response": [
+        {
+          "name": "200 OK – Server Running",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"message\": \"School Management API is running 🏫\",\n  \"version\": \"1.0.0\",\n  \"endpoints\": {\n    \"addSchool\": \"POST /addSchool\",\n    \"listSchools\": \"GET /listSchools?latitude=<lat>&longitude=<lon>\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add School – Success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "pm.test('success is true', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "  pm.expect(json.data).to.have.property('id');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Springfield Elementary\",\n  \"address\": \"123 Main Street, Springfield\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addSchool",
+          "host": ["{{baseUrl}}"],
+          "path": ["addSchool"]
+        },
+        "description": "Add a valid school. All four fields are required."
+      },
+      "response": [
+        {
+          "name": "201 Created",
+          "status": "Created",
+          "code": 201,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"message\": \"School added successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Springfield Elementary\",\n    \"address\": \"123 Main Street, Springfield\",\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add School – Validation Error (missing fields)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+              "pm.test('errors array present', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.errors).to.be.an('array').and.not.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Incomplete School\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addSchool",
+          "host": ["{{baseUrl}}"],
+          "path": ["addSchool"]
+        },
+        "description": "Omitting required fields triggers a 422 with a detailed error list."
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable Entity",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    { \"field\": \"address\",   \"message\": \"Address is required.\" },\n    { \"field\": \"latitude\",  \"message\": \"Latitude is required.\" },\n    { \"field\": \"longitude\", \"message\": \"Longitude is required.\" }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add School – Invalid Coordinates",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bad Coords School\",\n  \"address\": \"Nowhere Land\",\n  \"latitude\": 999,\n  \"longitude\": -999\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/addSchool",
+          "host": ["{{baseUrl}}"],
+          "path": ["addSchool"]
+        },
+        "description": "Latitude must be -90…90 and longitude -180…180."
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable Entity",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    { \"field\": \"latitude\",  \"message\": \"Latitude must be a number between -90 and 90.\" },\n    { \"field\": \"longitude\", \"message\": \"Longitude must be a number between -180 and 180.\" }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "List Schools – Sorted by Proximity (Delhi)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('data is array', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data).to.be.an('array');",
+              "});",
+              "pm.test('schools have distance_km', () => {",
+              "  const json = pm.response.json();",
+              "  if (json.data.length > 0) {",
+              "    pm.expect(json.data[0]).to.have.property('distance_km');",
+              "  }",
+              "});",
+              "pm.test('sorted ascending', () => {",
+              "  const list = pm.response.json().data;",
+              "  for (let i = 1; i < list.length; i++) {",
+              "    pm.expect(list[i].distance_km).to.be.at.least(list[i-1].distance_km);",
+              "  }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/listSchools?latitude=28.6139&longitude=77.2090",
+          "host": ["{{baseUrl}}"],
+          "path": ["listSchools"],
+          "query": [
+            { "key": "latitude",  "value": "28.6139" },
+            { "key": "longitude", "value": "77.2090" }
+          ]
+        },
+        "description": "Fetches all schools and returns them sorted nearest-first from the user's coordinates (Delhi in this example)."
+      },
+      "response": [
+        {
+          "name": "200 OK – Sorted List",
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Schools retrieved and sorted by proximity.\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Springfield Elementary\",\n      \"address\": \"123 Main Street, Springfield\",\n      \"latitude\": 28.6139,\n      \"longitude\": 77.209,\n      \"distance_km\": 0\n    }\n  ],\n  \"meta\": {\n    \"total\": 1,\n    \"userLocation\": { \"latitude\": 28.6139, \"longitude\": 77.209 }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "List Schools – Validation Error (missing params)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/listSchools",
+          "host": ["{{baseUrl}}"],
+          "path": ["listSchools"]
+        },
+        "description": "Calling /listSchools without lat/lon query params returns 422."
+      },
+      "response": [
+        {
+          "name": "422 Unprocessable Entity",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    { \"field\": \"latitude\",  \"message\": \"Latitude query parameter is required.\" },\n    { \"field\": \"longitude\", \"message\": \"Longitude query parameter is required.\" }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}
