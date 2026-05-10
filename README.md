@@ -29,14 +29,6 @@ Add School
 
 POST /addSchool
 
-Example Request:
-
-{
-  "name": "Green Valley School",
-  "address": "Pune",
-  "latitude": 18.5204,
-  "longitude": 73.8567
-}
 List Schools
 
 GET /listSchools?latitude=18.5204&longitude=73.8567
